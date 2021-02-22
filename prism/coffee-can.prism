@@ -1,0 +1,23 @@
+dtmc
+
+const int MAX_BEAN = 20;
+
+formula total = black + white;
+formula p_two_black = (black/total)*(max(0,black-1)/(total-1));
+formula p_two_white = (white/total)*(max(0,white-1)/(total-1));
+formula p_different = 1.0 - p_two_black - p_two_white;
+
+init
+	total >= 1 & total <= MAX_BEAN
+endinit
+
+module CoffeeCan
+	black : [0..(2*MAX_BEAN)];
+	white : [0..MAX_BEAN];
+
+	[] total > 1 ->
+		p_two_black : (black' = max(0, black - 1))
+		+ p_two_white : (black' = min(2*MAX_BEAN, black + 1)) & (white' = max(0, white - 2))
+		+ p_different : (black' = max(0, black - 1));
+	[] total = 1 -> true;
+endmodule

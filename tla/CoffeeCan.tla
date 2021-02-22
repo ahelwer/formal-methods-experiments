@@ -6,8 +6,6 @@ VARIABLES can
 
 Can == [black : Nat, white : Nat]
 
-TypeInvariant == can \in Can
-
 \* Initialize can so it contains at least one bean.
 Init == can \in {c \in Can : c.black + c.white >= 1}
 
@@ -43,6 +41,11 @@ EventuallyTerminates == <>(ENABLED Termination)
 
 MonotonicDecrease == [][BeanCount > 1 => BeanCount' < BeanCount]_<<can>>
 
+WhiteBeanTermination ==
+    IF can.white % 2 = 0
+    THEN <>(can.black = 1 /\ can.white = 0)
+    ELSE <>(can.black = 0 /\ can.white = 1)
+
 FinalBeanColor ==
     can.white 
 
@@ -52,8 +55,8 @@ Spec ==
     /\ WF_<<can>>(Next)
 
 THEOREM Spec =>
-    /\ []TypeInvariant
     /\ EventuallyTerminates
     /\ MonotonicDecrease
+    /\ WhiteBeanTermination
 
 =============================================================================
