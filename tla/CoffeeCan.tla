@@ -1,10 +1,10 @@
 ---------------------------- MODULE CoffeeCan -------------------------------
 
-EXTENDS Naturals
+EXTENDS Naturals, Integers
 
 VARIABLES can
 
-Can == [black : Nat, white : Nat]
+Can == [black : Nat, white : Int]
 
 \* Initialize can so it contains at least one bean.
 Init == can \in {c \in Can : c.black + c.white >= 1}
