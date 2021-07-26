@@ -35,9 +35,9 @@ ExactlyOneParent ==
                         \/ mem[o].right = addr
                 }
             IN
-            CASE parentsOfAddr = {} -> rootAddr = addr
-            [] parentsOfAddr = {addr} -> FALSE
-            [] OTHER -> Cardinality(parentsOfAddr) = 1
+            /\ parentsOfAddr = {} => rootAddr = addr
+            /\ parentsOfAddr /= {addr}
+            /\ Cardinality(parentsOfAddr) = 1
 
 DescendentsOf[a \in Address \cup {Null}] ==
     LET Descendents[addr \in Address \cup {Null}, seen \in SUBSET Address] ==
