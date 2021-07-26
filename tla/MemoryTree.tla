@@ -1,5 +1,5 @@
 ----------------------------- MODULE MemoryTree -----------------------------
-EXTENDS Naturals
+EXTENDS Naturals, FiniteSets
 
 CONSTANTS Address, Value
 
@@ -28,21 +28,16 @@ IsSortedBinaryTree ==
 ExactlyOneParent ==
     /\ \A addr \in Address :
         /\ mem[addr] /= Empty =>
-            IF rootAddr = addr
-            THEN
-                /\ \A otherAddr \in Address :
-                    LET otherNode == mem[otherAddr] IN
-                    /\ otherNode /= Empty =>
-                        /\ otherNode.left /= addr
-                        /\ otherNode.right /= addr
-            ELSE
-                /\ \E parentAddr \in Address \ {addr} :
-                    LET parentNode == mem[parentAddr] IN
-                    /\ parentNode /= Empty
-                    /\  \/  /\ parentNode.left = addr
-                            /\ parentNode.right /= addr
-                        \/  /\ parentNode.right = addr
-                            /\ parentNode.left /= addr
+            LET parentsOfAddr == {
+                o \in Address :
+                    /\ mem[o] /= Empty
+                    /\  \/ mem[o].left = addr
+                        \/ mem[o].right = addr
+                }
+            IN
+            CASE parentsOfAddr = {} -> rootAddr = addr
+            [] parentsOfAddr = {addr} -> FALSE
+            [] OTHER -> Cardinality(parentsOfAddr) = 1
 
 DescendentsOf[a \in Address \cup {Null}] ==
     LET Descendents[addr \in Address \cup {Null}, seen \in SUBSET Address] ==
