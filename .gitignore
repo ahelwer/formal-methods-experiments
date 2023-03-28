@@ -1,1 +1,7 @@
 *.toolbox
+states
+*_TTrace_*
+*.old
+.tlacache
+*.tlaps
+
