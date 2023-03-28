@@ -54,15 +54,9 @@ Termination == <>(pc = "Done")
 \* END TRANSLATION 
 
 TypeOK ==
-  IF f = <<>>
-  THEN
-    /\ f = <<>>
-    /\ h = -1
-    /\ i = 1
-  ELSE
-    /\ f \in Seq(Nat)
-    /\ h \in Nat \cup {-1}
-    /\ i \in 1..(Len(f) + 1)
+  /\ f \in Seq(Nat)
+  /\ i \in 1..(Len(f) + 1)
+  /\ h \in Nat \cup {-1}
 
 Correctness ==
   pc = "Done" =>
@@ -76,9 +70,30 @@ PROOF
     BY DEFS TypeOK, vars
   <1>c. TypeOK /\ Next => TypeOK'
     <2>a. TypeOK /\ lb => TypeOK'
+      <3> SUFFICES  ASSUME TypeOK, lb
+                    PROVE TypeOK'
       <3>a. CASE i <= Len(f)
-      <3>b. CASE i > Len(f)
-      <3> QED BY <3>a, <3>b DEFS TypeOK, Next
+        BY DEF TypeOK, lb, max
+      <3>b. CASE ~(i <= Len(f))
+        <4>a. i = Len(f) + 1
+          <5>a. i \in 1..(Len(f) + 1) /\ i > Len(f) => i = Len(f) + 1
+            PROOF OBVIOUS
+          <5>b. i \in 1..(Len(f) + 1) BY DEF TypeOK
+          <5>c. i > Len(f)
+            <6>a. ~(i <= Len(f)) <=> i > Len(f)
+              <7>a. Len(f) \in Nat
+              <7>b. i \in Nat BY DEF TypeOK
+              <7> QED BY <7>a, <7>b
+            <6>b. ~(i <= Len(f)) BY <3>b
+            <6> QED BY <6>a, <6>b
+          <5>d i = Len(f) + 1 BY <5>a, <5>b, <5>c
+          <5> QED BY <5>d
+        <4>b. UNCHANGED i
+          <5>a ~(i <= Len(f)) /\ lb => UNCHANGED i
+            BY DEF lb
+          <5> QED BY <3>b, <5>a DEF lb
+        <4> QED BY <4>a, <4>b DEFS TypeOK, lb
+      <3> QED BY <3>a, <3>b DEFS TypeOK, lb
     <2>b. TypeOK /\ Terminating => TypeOK'
       BY DEFS TypeOK, Terminating, vars
     <2> QED BY <2>a, <2>b DEF Next
