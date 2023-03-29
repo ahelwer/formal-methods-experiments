@@ -8,7 +8,7 @@ EXTENDS Sequences, Naturals, Integers, TLAPS
     h = -1;
     i = 1;
   define {
-    max(a, b) == IF a > b THEN a ELSE b
+    max(a, b) == IF a >= b THEN a ELSE b
   } {
 lb: while (i <= Len(f)) {
       h := max(h, f[i]);
@@ -21,7 +21,7 @@ lb: while (i <= Len(f)) {
 VARIABLES f, h, i, pc
 
 (* define statement *)
-max(a, b) == IF a > b THEN a ELSE b
+max(a, b) == IF a >= b THEN a ELSE b
 
 
 vars == << f, h, i, pc >>
@@ -56,13 +56,11 @@ Termination == <>(pc = "Done")
 TypeOK ==
   /\ f \in Seq(Nat)
   /\ i \in 1..(Len(f) + 1)
+  /\ i \in Nat
   /\ h \in Nat \cup {-1}
 
 THEOREM TypeInvariantHolds == Spec => []TypeOK
 PROOF
-  <1>0. SUFFICES  ASSUME Spec
-                PROVE []TypeOK
-      OBVIOUS
   <1>a. Init => TypeOK
     BY DEFS Init, TypeOK
   <1>b. TypeOK /\ UNCHANGED vars => TypeOK'
@@ -72,12 +70,12 @@ PROOF
       <3> SUFFICES  ASSUME TypeOK, lb
                     PROVE TypeOK'
           OBVIOUS
-      <3>a. CASE i <= Len(f)
-        BY DEF TypeOK, lb, max
+      <3> USE DEFS TypeOK, lb
+      <3>a. CASE i <= Len(f) BY DEF max
       <3>b. CASE ~(i <= Len(f))
-        <4> UNCHANGED <<f, h, i>> BY <3>b DEF lb
-        <4> QED BY DEF TypeOK
-      <3> QED BY <3>a, <3>b DEF lb
+        <4> UNCHANGED <<f, h, i>> BY <3>b
+        <4> QED
+      <3> QED BY <3>a, <3>b
     <2>b. TypeOK /\ Terminating => TypeOK'
       BY DEFS TypeOK, Terminating, vars
     <2> QED BY <2>a, <2>b DEF Next
@@ -88,74 +86,81 @@ InductiveInvariant ==
 
 THEOREM InductiveInvariantHolds == Spec => []InductiveInvariant
 PROOF
-  <1> SUFFICES  ASSUME Spec
-                PROVE []InductiveInvariant
-      OBVIOUS
   <1>a. Init => InductiveInvariant
     BY DEFS Init, InductiveInvariant
   <1>b. InductiveInvariant /\ UNCHANGED vars => InductiveInvariant'
     BY DEFS InductiveInvariant, vars
-  <1>c. InductiveInvariant /\ Next => InductiveInvariant'
+  <1>c. InductiveInvariant /\ TypeOK /\ TypeOK' /\ Next => InductiveInvariant'
     <2>a. InductiveInvariant /\ Terminating => InductiveInvariant'
       BY DEFS InductiveInvariant, Terminating, vars
-    <2>b. InductiveInvariant /\ lb => InductiveInvariant'
-      <3> SUFFICES  ASSUME InductiveInvariant, lb
+    <2>b. InductiveInvariant /\ TypeOK /\ TypeOK' /\ lb => InductiveInvariant'
+      <3> SUFFICES  ASSUME InductiveInvariant, TypeOK, TypeOK', lb
                     PROVE InductiveInvariant'
           OBVIOUS
+      <3> USE DEF TypeOK
       <3>a. CASE i <= Len(f)
-        <4>a. TypeOK BY PTL, TypeInvariantHolds
-        <4>b. \A idx \in 1..(i - 1) : f[idx] <= h
-          BY DEF InductiveInvariant
-        <4>c. h' > f[i] \/ h' = f[i]
-          OMITTED
-        <4>d. \A idx \in 1..(i' - 1) : f[idx] <= h'
-          OMITTED
+        <4>a. f[i] <= h' BY <3>a DEFS lb, max
+        <4>b. h <= h' BY <3>a DEFS lb, max
+        <4>c. \A idx \in 1..i : f[idx] <= h'
+          BY <4>a, <4>b DEF InductiveInvariant
+        <4>d. i = i' - 1 BY <3>a DEF lb
+        <4>e. \A idx \in 1..(i' - 1) : f[idx] <= h'
+          BY Zenon, <4>c, <4>d
+        <4>f. UNCHANGED f
+          BY DEF lb
+        <4>g. \A idx \in 1..(i' - 1) : f'[idx] <= h'
+          BY Zenon, <4>e, <4>f
         <4> QED
-          OMITTED
+          BY Zenon, <4>g DEF InductiveInvariant
       <3>b. CASE ~(i <= Len(f))
         <4> UNCHANGED <<f, h, i>> BY <3>b DEF lb
         <4> QED BY DEF InductiveInvariant
       <3> QED BY <3>a, <3>b DEF lb
     <2> QED BY <2>a, <2>b DEF Next
-  <1> QED BY PTL, <1>a, <1>b, <1>c DEF Spec
+  <1> QED BY PTL, <1>a, <1>b, <1>c, TypeInvariantHolds DEF Spec
 
+(*
 Correctness ==
   pc = "Done" =>
     \A idx \in DOMAIN f : f[idx] <= h
 
 DoneIndexValue == pc = "Done" => i = Len(f) + 1
-THEOREM DoneIndexValueThm == Spec => DoneIndexValue
+THEOREM DoneIndexValueThm == Spec => []DoneIndexValue
 PROOF
-  <1> SUFFICES  ASSUME Spec
-                PROVE []DoneIndexValue
-      OBVIOUS
-  <1>a. Init => DoneIndexValue
+  <1>a. Spec => []TypeOK BY TypeInvariantHolds
+  <1>b. SUFFICES  ASSUME []TypeOK
+                  PROVE []DoneIndexValue
+        BY <1>a
+  <1>c. Init => DoneIndexValue
     BY DEF Init, DoneIndexValue
-  <1>b. DoneIndexValue /\ UNCHANGED vars => DoneIndexValue'
+  <1>d. DoneIndexValue /\ UNCHANGED vars => DoneIndexValue'
     BY DEFS DoneIndexValue, vars
-  <1>c. DoneIndexValue /\ Next => DoneIndexValue'
+  <1>e. DoneIndexValue /\ Next => DoneIndexValue'
     <2>a. DoneIndexValue /\ Terminating => DoneIndexValue'
       BY DEFS DoneIndexValue, Terminating, vars
     <2>b. DoneIndexValue /\ lb => DoneIndexValue'
       <3> SUFFICES  ASSUME DoneIndexValue, lb
                     PROVE DoneIndexValue'
           OBVIOUS
+      <3> USE DEFS DoneIndexValue, lb
       <3>a. CASE i <= Len(f)
-        <4> pc' /= "Done" BY <3>a DEF lb
-        <4> QED BY DEF DoneIndexValue
+        <4> pc' /= "Done" BY <3>a
+        <4> QED
       <3>b. CASE ~(i <= Len(f))
-        <4>a. TypeOK BY PTL, TypeInvariantHolds
+        <4>a. TypeOK BY PTL, <1>b
         <4>b. i \in 1..(Len(f) + 1) BY <4>a DEF TypeOK
         <4>c. i = Len(f) + 1 BY <3>b, <4>b
-        <4>d. UNCHANGED <<f, i>> BY <3>b DEF lb
+        <4>d. UNCHANGED <<f, i>> BY <3>b
         <4>e. i' = Len(f') + 1 BY <4>c, <4>d
-        <4>f. pc' = "Done" BY <3>b DEF lb
+        <4>f. pc' = "Done" BY <3>b
         <4> QED BY <4>e, <4>f DEF DoneIndexValue
       <3> QED BY <3>a, <3>b DEF lb
     <2> QED BY <2>a, <2>b DEF Next
-  <1> QED BY PTL, <1>a, <1>b, <1>c DEF Spec
+  <1> QED BY PTL, <1>a, <1>b, <1>c, <1>d, <1>e
 
 THEOREM IndImpliesCorrectness == Spec => [](InductiveInvariant => Correctness)
+OMITTED
+
   <1> SUFFICES  ASSUME Spec
                 PROVE [](InductiveInvariant => Correctness)
       OBVIOUS
@@ -177,12 +182,13 @@ THEOREM IndImpliesCorrectness == Spec => [](InductiveInvariant => Correctness)
   <1> QED BY <1>a, <1>b DEF Correctness
 
 THEOREM AlgorithmIsCorrect == Spec => []Correctness
-  <1> SUFFICES  ASSUME Spec
-                PROVE []Correctness
-      OBVIOUS
-  <1>a. []InductiveInvariant BY InductiveInvariantHolds
+  <1>a. Spec => []InductiveInvariant BY InductiveInvariantHolds
+  <1>b. SUFFICES  ASSUME []InductiveInvariant
+                  PROVE []Correctness
+        BY <1>a
   <1>b. []Correctness BY PTL, <1>a, IndImpliesCorrectness DEF Spec
   <1> QED BY <1>b
+  *)
 
 =============================================================================
 
