@@ -17,7 +17,7 @@ lb: while (i <= Len(f)) {
   }
 }
 ****************************************************************************)
-\* BEGIN TRANSLATION (chksum(pcal) = "c908a386" /\ chksum(tla) = "36657a9f")
+\* BEGIN TRANSLATION (chksum(pcal) = "31f24270" /\ chksum(tla) = "819802c6")
 VARIABLES f, h, i, pc
 
 (* define statement *)
@@ -117,11 +117,8 @@ PROOF
     <2> QED BY <2>a, <2>b DEF Next
   <1> QED BY PTL, <1>a, <1>b, <1>c, TypeInvariantHolds DEF Spec
 
-Correctness ==
-  pc = "Done" =>
-    \A idx \in DOMAIN f : f[idx] <= h
-
 DoneIndexValue == pc = "Done" => i = Len(f) + 1
+
 THEOREM DoneIndexValueThm == Spec => []DoneIndexValue
 PROOF
   <1>a. Init => DoneIndexValue
@@ -150,38 +147,57 @@ PROOF
     <2> QED BY <2>a, <2>b DEF Next
   <1> QED BY PTL, <1>a, <1>b, <1>c, TypeInvariantHolds DEF Spec
 
-(*
-THEOREM IndImpliesCorrectness == Spec => [](InductiveInvariant => Correctness)
-OMITTED
+Correctness ==
+  pc = "Done" =>
+    \A idx \in DOMAIN f : f[idx] <= h
 
-  <1> SUFFICES  ASSUME Spec
-                PROVE [](InductiveInvariant => Correctness)
-      OBVIOUS
-  <1> SUFFICES  ASSUME pc = "DONE"
-                PROVE \A idx \in DOMAIN f : f[idx] <= h
-      BY DEF Correctness
-  <1>a. CASE pc /= "Done"
-    <+> QED BY <1>a DEF Correctness
-  <1>b. CASE pc = "Done"
-    <2>a. TypeOK BY PTL, TypeInvariantHolds
-    <2>b. DOMAIN f = 1..((Len(f) + 1) - 1)
-      BY <2>a DEFS Len, TypeOK
-    <2>c. i = Len(f) + 1
-      BY <1>b, DoneIndexValueThm DEF DoneIndexValue
-    <2>d. DOMAIN f = 1..(i - 1) BY <2>b, <2>c
-    <2>e. \A idx \in DOMAIN f : f[idx] <= h
-      BY <2>d DEF InductiveInvariant
-    <2> QED BY <1>b, <2>e DEF Correctness
-  <1> QED BY <1>a, <1>b DEF Correctness
-
-THEOREM AlgorithmIsCorrect == Spec => []Correctness
-  <1>a. Spec => []InductiveInvariant BY InductiveInvariantHolds
-  <1>b. SUFFICES  ASSUME []InductiveInvariant
-                  PROVE []Correctness
-        BY <1>a
-  <1>b. []Correctness BY PTL, <1>a, IndImpliesCorrectness DEF Spec
-  <1> QED BY <1>b
-  *)
+THEOREM IndImpliesCorrectness == Spec => []Correctness
+PROOF
+  <1>a. Init => Correctness
+    BY DEF Init, Correctness
+  <1>b. Correctness /\ UNCHANGED vars => Correctness'
+    BY DEF Correctness, vars
+  <1>c. /\ Correctness
+        /\ InductiveInvariant'
+        /\ DoneIndexValue'
+        /\ Next
+        => Correctness'
+    <2>a. Correctness /\ Terminating => Correctness'
+      BY DEF Correctness, Terminating, vars
+    <2>b.
+        /\ Correctness
+        /\ InductiveInvariant'
+        /\ DoneIndexValue'
+        /\ lb
+        => Correctness'
+      <3> SUFFICES ASSUME
+            Correctness,
+            InductiveInvariant',
+            DoneIndexValue',
+            lb
+          PROVE
+            Correctness'
+          OBVIOUS
+      <3>a. CASE i <= Len(f)
+        <4>a. pc' /= "Done" BY <3>a DEF lb
+        <4> QED BY <3>a, <4>a DEFS Correctness, lb
+      <3>b. CASE ~(i <= Len(f))
+        <4>a. pc' = "Done" BY <3>b DEF lb
+        <4>b. i' = Len(f') + 1 BY <4>a DEF DoneIndexValue
+        <4>c. DOMAIN f' = 1..Len(f') BY lb
+        <4>d. DOMAIN f' = 1..(i' - 1) BY <4>b, <4>c
+        <4>e. \A idx \in 1..(i' - 1) : f'[idx] <= h'
+          BY DEF InductiveInvariant
+        <4>f. \A idx \in DOMAIN f' : f'[idx] <= h'
+          BY <4>d, <4>e
+        <4> QED BY <4>f DEF Correctness
+      <3> QED BY <3>a, <3>b, lb
+    <2> QED BY <2>a, <2>b DEF Next
+  <1> QED
+    BY
+      <1>a, <1>b, <1>c,
+      InductiveInvariantHolds, DoneIndexValueThm, PTL
+    DEF Spec
 
 =============================================================================
 
