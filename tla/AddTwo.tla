@@ -60,10 +60,17 @@ THEOREM Spec => []AlwaysEven
           ASSUME AlwaysEven, Next
           PROVE AlwaysEven'
     <2> USE DEF AlwaysEven, Next
-    <2>1. PICK c \in Nat : 2 * c = x BY DEF |
-    <2>2. 2*(c + 1) = x + 2 BY <2>1
-    <2>3. 2|(x + 2) BY <2>2 DEF |
-    <2>4. QED BY <2>3
+    <2>a. PICK c \in Nat : 2 * c = x BY DEF |
+    <2>b. 2*(c + 1) = x + 2 BY <2>a
+    <2>c. \E n \in Nat : 2*n = x + 2
+      <3> SUFFICES  ASSUME (c + 1) \in Nat
+                    PROVE 2*(c + 1) = x + 2
+          BY Isa
+      <3>b. (c + 1) \in Nat BY <2>a
+      <3>c. 2*(c + 1) = x + 2 BY <2>b
+      <3> QED BY <3>c
+    <2>d. x' = x + 2 BY DEF Next
+    <2> QED BY <2>c, <2>d DEF |
   <1> QED BY PTL, <1>a, <1>b, <1>c DEF Spec
 
 =============================================================================
