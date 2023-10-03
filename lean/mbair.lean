@@ -115,3 +115,176 @@ def enumerate (v : α) : State Nat (Nat × α) :=
   pure (n, v)
 
 #eval example_tree.mapM enumerate 0
+
+def doEnumerate (v : α) : State Nat (Nat × α) := do
+  let n ← get
+  set (n + 1)
+  pure (n, v)
+
+def BinTree.doMapM [Monad m] (f : α → m β) : BinTree α → m (BinTree β)
+  | .leaf => pure .leaf
+  | .branch l x r => do
+    let ml ← doMapM f l
+    let mx ← f x 
+    let mr ← doMapM f r
+    pure (.branch ml mx mr)
+
+#eval example_tree.doMapM doEnumerate 0
+
+-- Programming with Dependent Types
+
+-- Exercises from 8.1 Indexed Families
+
+inductive Vect (α : Type u) : Nat → Type u where
+   | nil : Vect α 0
+   | cons : α → Vect α n → Vect α (n + 1)
+
+def Vect.replicate (n : Nat) (x : α) : Vect α n :=
+  match n with
+  | 0 => .nil
+  | k + 1 => .cons x (replicate k x)
+
+def Vect.zip : Vect α n → Vect β n → Vect (α × β) n
+  | .nil, .nil => .nil
+  | .cons x xs, .cons y ys => .cons (x, y) (zip xs ys)
+
+--def IsListLengthN (xs : List α) (n : Nat) : Prop := xs.length == n
+
+#eval ["Mount Hood",
+ "Mount Jefferson",
+ "South Sister"].zip ["Møllehøj", "Yding Skovhøj", "Ejer Bavnehøj"]
+
+def OregonPeaks : Vect String 3 :=
+  .cons "Mount Hood" (
+    .cons "Mount Jefferson" (
+      .cons "South Sister" .nil
+    )
+  )
+
+def DenmarkPeaks : Vect String 3 :=
+  .cons "Møllehøj" (
+    .cons "Yding Skovhøj" (
+      .cons "Ejer Bavnehøj" .nil
+    )
+  )
+
+def Nat.plusR : Nat → Nat → Nat
+  | n, 0 => n
+  | n, k + 1 => plusR n k + 1
+
+def Nat.plusL : Nat → Nat → Nat
+  | 0, k => k
+  | n + 1, k => plusL n k + 1
+
+theorem plusR_zero_left (k : Nat) : k = Nat.plusR 0 k := by
+  induction k <;> simp [Nat.plusR] <;> assumption
+
+-- Tail recursion exercises
+def NonTail.reverse : List α → List α
+  | [] => []
+  | x :: xs => reverse xs ++ [x]
+
+def Tail.reverse (xs : List α) : List α :=
+  let rec helper : List α → List α → List α
+  | [], acc => acc
+  | x :: xs, acc => helper xs (x :: acc)
+  helper xs []
+
+#eval Tail.reverse [1,2,3,4,5]
+
+def NonTail.length : List α → Nat
+  | [] => 0
+  | _ :: xs => NonTail.length xs + 1 
+
+def Tail.length (xs : List α) : Nat :=
+  let rec helper : List α → Nat → Nat
+  | [], acc => acc
+  | _ :: xs, acc => helper xs (acc + 1)
+  helper xs 0
+
+#eval Tail.length ["a", "b", "c", "d"]
+
+def NonTail.factorial : Nat → Nat
+  | 0 => 1
+  | n + 1 => factorial n * (n + 1)
+
+def Tail.factorial (n : Nat) : Nat :=
+  let rec helper : Nat → Nat → Nat
+    | 0, acc => acc
+    | n + 1, acc => helper n (acc * (n + 1))
+  helper n 1
+
+#eval Tail.factorial 0
+#eval Tail.factorial 1
+#eval Tail.factorial 3
+
+def NonTail.filter (p : α → Bool) : List α → List α
+  | [] => []
+  | x :: xs =>
+    if p x then
+      x :: filter p xs
+    else
+      filter p xs
+
+def Tail.filter (p : α → Bool) (xs : List α) : List α :=
+  let rec helper : List α → List α → List α
+  | [], acc => acc
+  | x :: xs, acc =>
+    if p x then
+      helper xs (x :: acc)
+    else
+      helper xs acc
+  Tail.reverse (helper xs [])
+
+#eval Tail.filter (fun (x : Nat) => x > 3) [1,2,3,4,5]
+
+def NonTail.sum : List Nat → Nat
+  | [] => 0
+  | x :: xs => x + NonTail.sum xs
+
+def Tail.sum (xs : List Nat) : Nat :=
+  let rec helper : List Nat → Nat → Nat
+    | [], acc => acc
+    | x :: xs, acc => helper xs (acc + x)
+  helper xs 0
+
+-- Tail recursion proofs
+
+theorem non_tail_sum_eq_helper_accum (xs : List Nat) :
+  (n : Nat) → n + NonTail.sum xs = Tail.sum.helper xs n := by
+  induction xs with
+  | nil =>
+    intro n
+    rfl
+  | cons y ys ih =>
+    intro n
+    simp [NonTail.sum, Tail.sum.helper]
+    rw [←Nat.add_assoc]
+    exact ih (n + y)
+
+theorem non_tail_sum_eq_tail_sum : NonTail.sum = Tail.sum := by
+  funext xs
+  unfold Tail.sum
+  rw [← Nat.zero_add (NonTail.sum xs)]
+  exact non_tail_sum_eq_helper_accum xs 0
+
+theorem MyNat.zero_add (n : Nat) : 0 + n = n := by
+  induction n with
+  | zero => rfl
+  | succ n ihp =>
+    rw [Nat.add_succ]
+    rw [ihp]
+
+theorem MyNat.add_assoc (a b c : Nat) : a + b + c = a + (b + c) := by
+  induction a with
+  | zero =>
+    rw [MyNat.zero_add b]
+    rw [MyNat.zero_add (b + c)]
+  | succ n ihp =>
+    simp [Nat.succ_add]
+    exact ihp
+
+theorem MyNat.add_comm (a b : Nat) : a + b = b + a := by
+  induction a with
+  | zero => simp
+  | succ n ihp => rw [Nat.succ_add, Nat.add_succ, ihp]
