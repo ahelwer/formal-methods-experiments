@@ -58,7 +58,7 @@ def BinTree.enumerateAndThen (t : BinTree α) : BinTree (Nat × α) :=
     | BinTree.leaf => fun s => (s, BinTree.leaf)
     | BinTree.branch l x r =>
       andThen (enumerate_from l)
-        (fun sl => 
+        (fun sl =>
           andThen (fun s => (s + 1, (s, x)))
             (fun sx =>
               andThen (enumerate_from r)
@@ -125,7 +125,7 @@ def BinTree.doMapM [Monad m] (f : α → m β) : BinTree α → m (BinTree β)
   | .leaf => pure .leaf
   | .branch l x r => do
     let ml ← doMapM f l
-    let mx ← f x 
+    let mx ← f x
     let mr ← doMapM f r
     pure (.branch ml mx mr)
 
@@ -194,7 +194,7 @@ def Tail.reverse (xs : List α) : List α :=
 
 def NonTail.length : List α → Nat
   | [] => 0
-  | _ :: xs => NonTail.length xs + 1 
+  | _ :: xs => NonTail.length xs + 1
 
 def Tail.length (xs : List α) : Nat :=
   let rec helper : List α → Nat → Nat
@@ -288,3 +288,61 @@ theorem MyNat.add_comm (a b : Nat) : a + b = b + a := by
   induction a with
   | zero => simp
   | succ n ihp => rw [Nat.succ_add, Nat.add_succ, ihp]
+
+theorem non_tail_reverse_eq_helper_accum (xs : List α) :
+  (ys : List α) → NonTail.reverse xs ++ ys = Tail.reverse.helper xs ys := by
+  induction xs with
+  | nil =>
+    intro ys
+    rfl
+  | cons x xs ihp =>
+    intro ys
+    unfold NonTail.reverse
+    unfold Tail.reverse.helper
+    rw [← ihp]
+    simp [List.append_assoc]
+
+theorem List.append_empty (xs : List α) : xs ++ [] = xs := by simp
+
+theorem non_tail_reverse_eq_tail_reverse : @NonTail.reverse = @Tail.reverse := by
+  funext α xs
+  unfold Tail.reverse
+  rw [← List.append_empty (NonTail.reverse xs)]
+  exact non_tail_reverse_eq_helper_accum xs []
+
+theorem tail_factorial_helper_eq (n : Nat) :
+  (x : Nat) → NonTail.factorial n * x = Tail.factorial.helper n x := by
+  induction n with
+  | zero =>
+    intro x
+    simp [NonTail.factorial, Tail.factorial.helper]
+  | succ n ihn =>
+    intro x
+    simp [NonTail.factorial, Tail.factorial.helper]
+    rw [← ihn (x * (n + 1))]
+    rw [Nat.mul_comm x (n + 1)]
+    rw [Nat.mul_assoc]
+
+theorem non_tail_factorial_eq_tail_factorial : NonTail.factorial = Tail.factorial := by
+  funext n
+  unfold Tail.factorial
+  rw [← Nat.mul_one (NonTail.factorial n)]
+  exact tail_factorial_helper_eq n 1
+
+-- Arrays
+
+def findHelper (arr : Array α) (p : α → Bool) (i : Nat) : Option (Nat × α) :=
+  if h : i < arr.size then
+    let x := arr[i]
+    if p x then
+      some (i, x)
+    else findHelper arr p (i + 1)
+  else none
+termination_by findHelper arr p i => arr.size - i
+
+def MyArray.reverse (arr : Array α) : Array α :=
+  let rec helper (acc : Array α) : Nat → Array α :=
+  if h :
+  | 0 => acc
+  | i + 1 => helper (acc.push arr[i]) i
+  helper Array.empty arr.size

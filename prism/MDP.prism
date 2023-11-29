@@ -1,0 +1,18 @@
+mdp
+
+module StrangeDiceGame
+	// Not-yet-flipped: 0, heads: 1, tails: 2
+	AFlip : [0 .. 2] init 0;
+	BFlip : [0 .. 2] init 0;
+
+	// Choose one of the threads to go first and flip the unfair coin
+	[] AFlip = 0 & BFlip = 0 -> 0.75 : (AFlip' = 1) + 0.25 : (AFlip' = 2);
+	[] AFlip = 0 & BFlip = 0 -> 0.75 : (BFlip' = 1) + 0.25 : (BFlip' = 2);
+
+	// The second thread flips the fair coin
+	[] AFlip != 0 & BFlip = 0 -> 0.5 : (BFlip' = 1) + 0.5 : (BFlip' = 2);
+	[] AFlip = 0 & BFlip != 0 -> 0.5 : (AFlip' = 1) + 0.5 : (AFlip' = 2);
+
+	// Loopback in accepting states
+	[] AFlip != 0 & BFlip != 0 -> (AFlip' = AFlip) & (BFlip' = BFlip);
+endmodule
