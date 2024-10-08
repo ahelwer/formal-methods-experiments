@@ -1,6 +1,6 @@
 mdp
 
-module StrangeDiceGame
+module StrangeCoinGame
 	// Not-yet-flipped: 0, heads: 1, tails: 2
 	AFlip : [0 .. 2] init 0;
 	BFlip : [0 .. 2] init 0;

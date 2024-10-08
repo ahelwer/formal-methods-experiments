@@ -17,33 +17,36 @@ ASSUME IsValidDFA ≜
   ∧ delta ∈ [Q × Sigma → Q]
   ∧ F ⊆ Q
 
-VARIABLES w, q, i
+VARIABLES w, q, i, acc
 
-vars ≜ ⟨w, q, i⟩
+vars ≜ ⟨w, q, i, acc⟩
 
 Init[input ∈ Seq(Sigma)] ≜
   ∧ w = input
   ∧ q = q_0
   ∧ i = 1
+  ∧ acc = (q ∈ F)
 
 TypeInvariant ≜
   ∧ q ∈ Q
   ∧ i ∈ ℕ
+  ∧ acc ∈ BOOLEAN
 
 Step ≜
   ∧ i ∈ DOMAIN w
   ∧ q' = delta[q, w[i]]
   ∧ i' = i + 1
+  ∧ acc' = (q' ∈ F)
 
 Terminate ≜
   ∧ i ∉ DOMAIN w
-  ∧ UNCHANGED ⟨q, i⟩
+  ∧ UNCHANGED ⟨q, i, acc⟩
 
 Next ≜
   ∧ ∨ Step
     ∨ Terminate
   ∧ UNCHANGED w
 
-Accepts(input) ≜ (w = input) ⇒ ◇□(q ∈ F)
+Accepts ≜ ◇□(q ∈ F)
 
 =============================================================================
